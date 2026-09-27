@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Bible Trivia Board</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #f59e0b;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body.round-2 {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --accent: #ec4899;
+        }
+
+        body.round-3 {
+            --primary: #059669;
+            --primary-dark: #047857;
+            --accent: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
+        /* --- SETUP SCREEN --- */
+        #setup-screen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .setup-card {
+            background-color: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 540px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .setup-card h1 {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .setup-card p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-light);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-launch {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+
+        /* --- SCOREBOARD & HEADER --- */
+        header {
+            background-color: rgba(30, 41, 59, 0.9);
+            border-bottom: 4px solid var(--primary);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .title-area h2 {
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        .title-area span {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .scoreboard {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .score-card {
+            background-color: #151f32;
+            padding: 12px 18px;
+            border-radius: 8px;
+            border-left: 5px solid #475569;
+            min-width: 180px;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .score-card.active-turn {
+            border-left-color: var(--accent);
+            background: rgba(245, 158, 11, 0.05);
+            transform: scale(1.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-card.active-turn::after {
+            content: "ACTIVE";
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            background-color: var(--accent);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .score-card.leader::before {
+            content: "👑";
+            position: absolute;
+            top: -12px;
+            left: 10px;
+            font-size: 1rem;
+        }
+
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 2px 4px;
+            width: 110px;
+        }
+
+        .score-name:focus {
+            outline: none;
+            background-color: #0f172a;
+            border-color: var(--primary);
+        }
+
+        .score-body {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .score-val {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .score-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-score-adj {
+            background-color: #334155;
+            color: #fff;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .btn-score-adj:hover {
+            background-color: var(--primary);
+        }
+
+        /* --- THE BOARD GRID --- */
+        main {
+            flex: 1;
+            padding: 40px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            flex: 1;
+        }
+
+        .category-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .category-header {
+            background-color: var(--primary-dark);
+            padding: 20px 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            word-break: break-word;
+        }
+
+        .question-btn {
+            background-color: var(--bg-card);
+            border: 2px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-light);
+            padding: 25px;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .question-btn:hover:not(:disabled) {
+            background-color: var(--primary);
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .question-btn:disabled {
+            background-color: rgba(15, 23, 42, 0.4);
+            color: #334155;
+            border-color: transparent;
+            cursor: not-allowed;
+            text-decoration: line-through;
+            box-shadow: none;
+        }
+
+        /* --- CONTROL FOOTER BAR --- */
+        .controls-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 2px solid #1e293b;
+        }
+
+        .btn-action {
+            padding: 14px 28px;
+            background-color: #334155;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background-color: #475569;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        #btn-next-round {
+            background-color: var(--primary);
+        }
+        #btn-next-round:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+        }
+
+        /* --- MODAL DISPLAY WINDOW --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.96);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background-color: var(--bg-card);
+            border: 3px solid var(--primary);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 850px;
+            padding: 50px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            position: relative;
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-category-meta {
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent);
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .question-display-text {
+            font-size: 2.2rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        .answer-display-text {
+            font-size: 1.8rem;
+            color: #34d399;
+            background: rgba(52, 211, 153, 0.08);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border: 2px dashed #34d399;
+            display: none;
+        }
+
+        /* Countdown Elements */
+        .timer-track {
+            width: 100%;
+            background-color: #0f172a;
+            height: 14px;
+            border-radius: 7px;
+            margin-bottom: 45px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #10b981, #f59e0b);
+            transition: width 1s linear;
+        }
+
+        .timer-track.danger-alert .timer-fill {
+            background: var(--danger) !important;
+            animation: flashingRed 0.5s infinite alternate;
+        }
+
+        @keyframes flashingRed {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .timer-label {
+            position: absolute;
+            right: 15px;
+            top: -28px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            font-family: monospace;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .btn-reveal {
+            width: 100%;
+            max-width: 350px;
+            padding: 18px;
+            background-color: #475569;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-reveal:hover {
+            background-color: #5a6e85;
+        }
+
+        .scoring-row {
+            display: none;
+            gap: 25px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-decision {
+            flex: 1;
+            max-width: 220px;
+            padding: 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .btn-decision:active {
+            transform: scale(0.97);
+        }
+
+        .decision-correct { background-color: var(--success); }
+        .decision-correct:hover { background-color: #059669; }
+        .decision-incorrect { background-color: var(--danger); }
+        .decision-incorrect:hover { background-color: #dc2626; }
+
+        @media (max-width: 1200px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 680px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            .question-display-text {
+                font-size: 1.6rem;
+            }
+            .answer-display-text {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="setup-card">
+            <h1>Bible Trivia</h1>
+            <p>Player Management Edition</p>
+            
+            <div class="form-group">
+                <label for="p1-input">Contestant 1 Name</label>
+                <input type="text" id="p1-input" value="Contestant 1">
+            </div>
+            <div class="form-group">
+                <label for="p2-input">Contestant 2 Name</label>
+                <input type="text" id="p2-input" value="Contestant 2">
+            </div>
+            <div class="form-group">
+                <label for="p3-input">Contestant 3 Name</label>
+                <input type="text" id="p3-input" value="Contestant 3">
+            </div>
+            <div class="form-group">
+                <label for="timer-input">Timer Per Question (Seconds)</label>
+                <input type="number" id="timer-input" value="20" min="5" max="99">
+            </div>
+
+            <button class="btn-launch" onclick="initiateTriviaBoard()">Build & Launch Game</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="title-area">
+            <h2>BIBLE TRIVIA // <span id="round-title-node">ROUND 1</span></h2>
+        </div>
+        <div class="scoreboard">
+            <div class="score-card" id="card-idx-0">
+                <div class="score-header">
+                    <input type="text" class="score-name" id="label-idx-0" value="Contestant 1" onchange="updatePlayerName(0, this.value)">
+                </div>
+                <div class="score-body">
+                    <div class="score-val" id="val-idx-0">0</div>
+                    <div class="score-controls">
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(0, -100)">-</button>
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(0, 100)">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="score-card" id="card-idx-1">
+                <div class="score-header">
+                    <input type="text" class="score-name" id="label-idx-1" value="Contestant 2" onchange="updatePlayerName(1, this.value)">
+                </div>
+                <div class="score-body">
+                    <div class="score-val" id="val-idx-1">0</div>
+                    <div class="score-controls">
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(1, -100)">-</button>
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(1, 100)">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="score-card" id="card-idx-2">
+                <div class="score-header">
+                    <input type="text" class="score-name" id="label-idx-2" value="Contestant 3" onchange="updatePlayerName(2, this.value)">
+                </div>
+                <div class="score-body">
+                    <div class="score-val" id="val-idx-2">0</div>
+                    <div class="score-controls">
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(2, -100)">-</button>
+                        <button class="btn-score-adj" onclick="manualScoreAdjust(2, 100)">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="grid-container" id="board-matrix-grid"></div>
+
+        <div class="controls-footer">
+            <button class="btn-action" onclick="forceRotateTurn()">Skip/Pass Choice Turn</button>
+            <button class="btn-action" id="btn-next-round" onclick="advanceToNextRound()" disabled>Advance Round &rarr;</button>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="question-modal">
+        <div class="modal-card">
+            <div class="timer-track" id="timer-track-element">
+                <div class="timer-label" id="timer-countdown-text">20s</div>
+                <div class="timer-fill" id="timer-bar-fill"></div>
+            </div>
+            
+            <div class="modal-category-meta" id="modal-category-text">CATEGORY</div>
+            <div class="question-display-text" id="modal-question-text">Question Placeholder?</div>
+            <div class="answer-display-text" id="modal-answer-text">Answer Placeholder</div>
+
+            <div class="modal-buttons">
+                <button class="btn-reveal" id="btn-reveal-trigger" onclick="revealAnswerAction()">Show Answer</button>
+                <div class="scoring-row" id="scoring-row-block">
+                    <button class="btn-decision decision-incorrect" onclick="resolveScoringSubmission(false)">✕ Incorrect</button>
+                    <button class="btn-decision decision-correct" onclick="resolveScoringSubmission(true)">✓ Correct</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const triviaPackage = {
+            1: [
+                {
+                    category: "Mode 1: Famous Opening Lines",
+                    questions: [
+                        { q: "\"In the beginning was the Word, and the Word was with God, and the Word was God.\" Which book opens with this verse?", a: "John (John 1:1)" },
+                        { q: "\"The vision of Isaiah son of Amoz concerning Judah and Jerusalem...\" Name the book.", a: "Isaiah (Isaiah 1:1)" },
+                        { q: "\"Paul, a servant of Christ Jesus, called to be an apostle and set apart for the gospel of God...\" Which epistle starts here?", a: "Romans (Romans 1:1)" },
+                        { q: "\"In the third year of the reign of Jehoiakim king of Judah, Nebuchadnezzar king of Babylon came to Jerusalem...\" Name the book.", a: "Daniel (Daniel 1:1)" },
+                        { q: "\"The revelation from Jesus Christ, which God gave him to show his servants...\" Which book begins with this title?", a: "Revelation (Revelation 1:1)" },
+                        { q: "\"Blessed is the one who does not walk in step with the wicked...\" Name the opening chapter.", a: "Psalm 1" }
+                    ]
+                },
+                {
+                    category: "Mode 2: Divine Commands",
+                    questions: [
+                        { q: "\"Let there be light.\" What scripture reference marks this first spoken command of God?", a: "Genesis 1:3" },
+                        { q: "\"Honor your father and your mother...\" Which commandment number is this in Exodus 20?", a: "5th Commandment (Exodus 20:12)" },
+                        { q: "\"Love the Lord your God with all your heart and with all your soul and with all your strength.\" Where is this original command in the Law?", a: "Deuteronomy 6:5" },
+                        { q: "\"Take off your sandals, for the place where you are standing is holy ground.\" Where did God issue this order?", a: "Exodus 3:5 (The Burning Bush)" },
+                        { q: "\"Go, sell your possessions and give to the poor, and you will have treasure in heaven.\" To whom did Jesus say this?", a: "The Rich Young Ruler (Matthew 19:21)" },
+                        { q: "\"Be holy, because I am holy.\" In which Old Testament book is this command repeatedly given?", a: "Leviticus (e.g., Leviticus 11:44)" }
+                    ]
+                },
+                {
+                    category: "Mode 3: Missing Key Metaphors",
+                    questions: [
+                        { q: "\"You are the _____ of the earth. But if the _____ loses its saltiness, how can it be made salty again?\" (Matthew 5:13)", a: "Salt" },
+                        { q: "\"I am the _____; you are the branches. If you remain in me and I in you, you will bear much fruit.\" (John 15:5)", a: "Vine" },
+                        { q: "\"The Lord is my _____; I shall not want.\" (Psalm 23:1)", a: "Shepherd" },
+                        { q: "\"We have this hope as an _____ for the soul, firm and secure.\" (Hebrews 6:19)", a: "Anchor" },
+                        { q: "\"Your word is a _____ to my feet and a light to my path.\" (Psalm 119:105)", a: "Lamp" },
+                        { q: "\"Put on the full _____ of God, so that you can take your stand against the devil’s schemes.\" (Ephesians 6:11)", a: "Armor" }
+                    ]
+                },
+                {
+                    category: "Mode 4: Famous Last Words",
+                    questions: [
+                        { q: "\"It is finished.\" In which Gospel is this final declaration recorded?", a: "John (John 19:30)" },
+                        { q: "\"Lord, do not hold this sin against them.\" Who said this right before he died?", a: "Stephen (Acts 7:60)" },
+                        { q: "\"I have fought the good fight, I have finished the race, I have kept the faith.\" Who wrote these final words to Timothy?", a: "Paul (2 Timothy 4:7)" },
+                        { q: "\"Into your hands I commit my spirit.\" Which Psalm was Jesus quoting when he said this on the cross?", a: "Psalm 31 (Psalm 31:5)" },
+                        { q: "\"He who testifies to these things says, 'Yes, I am coming soon.' Amen. Come, Lord Jesus.\" Where is this verse located?", a: "Revelation 22:20" },
+                        { q: "\"Let me die with the Philistines!\" Who shouted this quote right before bringing down the temple pillars?", a: "Samson (Judges 16:30)" }
+                    ]
+                }
+            ],
+            2: [
+                {
+                    category: "Mode 5: One-Verse Chapter Clues",
+                    questions: [
+                        { q: "\"Jesus wept.\" What is the exact reference of this shortest verse in the English Bible?", a: "John 11:35" },
+                        { q: "\"Rejoice always.\" What reference holds this brief Paul command?", a: "1 Thessalonians 5:16" },
+                        { q: "\"Pray without ceasing.\" What is the verse immediately following 1 Thessalonians 5:16?", a: "1 Thessalonians 5:17" },
+                        { q: "\"Remember Lot's wife.\" In which Gospel chapter does Jesus give this three-word warning?", a: "Luke 17 (Luke 17:32)" },
+                        { q: "\"You shall not steal.\" Where is this concise commandment located in Exodus?", a: "Exodus 20:15" },
+                        { q: "\"God is love.\" In which NT letter does this core definition appear twice?", a: "1 John (1 John 4:8, 16)" }
+                    ]
+                },
+                {
+                    category: "Mode 6: Parable Quotes",
+                    questions: [
+                        { q: "\"Father, I have sinned against heaven and against you. I am no longer worthy to be called your son.\" Which parable features this quote?", a: "The Prodigal Son (Luke 15:21)" },
+                        { q: "\"Look, after all these years I’ve been slaving for you and never disobeyed your orders...\" Who said this in the same parable?", a: "The Older Brother (Luke 15:29)" },
+                        { q: "\"Take care of him, and when I return, I will reimburse you for any extra expense you have.\" Who spoke these words to the innkeeper?", a: "The Good Samaritan (Luke 10:35)" },
+                        { q: "\"You fool! This very night your life will be demanded from you.\" In which parable does God speak this warning?", a: "The Parable of the Rich Fool (Luke 12:20)" },
+                        { q: "\"Well done, good and faithful servant! You have been faithful with a few things; I will put you in charge of many things.\" Which parable is this?", a: "The Parable of the Talents (Matthew 25:21)" },
+                        { q: "\"God, have mercy on me, a sinner.\" Who uttered this humble prayer at the temple in Jesus' story?", a: "The Tax Collector (Luke 18:13)" }
+                    ]
+                },
+                {
+                    category: "Mode 7: Cross-Testament Echoes",
+                    questions: [
+                        { q: "When Jesus said \"My house will be called a house of prayer, but you are making it a den of robbers,\" which two OT books was he quoting?", a: "Isaiah (56:7) and Jeremiah (7:11)" },
+                        { q: "\"Out of Egypt I called my son.\" Matthew 2:15 applies this prophetic verse from which OT book?", a: "Hosea (Hosea 11:1)" },
+                        { q: "Where in the OT is the quote \"He will command his angels concerning you...\" that Satan used to tempt Jesus?", a: "Psalm 91 (Psalm 91:11-12)" },
+                        { q: "\"Look, the virgin shall conceive and give birth to a son, and they shall call him Immanuel.\" Matthew quotes this from which chapter in Isaiah?", a: "Isaiah 7 (Isaiah 7:14)" },
+                        { q: "Paul quotes \"The righteous will live by faith\" in Romans 1:17. Which minor prophet first wrote this?", a: "Habakkuk (Habakkuk 2:4)" },
+                        { q: "Which Psalm is quoted in the New Testament more than any other single Psalm?", a: "Psalm 110" }
+                    ]
+                },
+                {
+                    category: "Mode 8: Who Spoke To Whom?",
+                    questions: [
+                        { q: "\"The Lord see between you and me when we are away from each other.\" Who said this to whom?", a: "Laban to Jacob (Genesis 31:49)" },
+                        { q: "\"How long will you keep getting drunk? Get rid of your wine!\" Who said this to Hannah?", a: "Eli the Priest (1 Samuel 1:14)" },
+                        { q: "\"You are the man!\" Who said this to King David after telling a story about a poor man's lamb?", a: "Nathan the Prophet (2 Samuel 12:7)" },
+                        { q: "\"Can anything good come out of Nazareth?\" Who said this to Philip?", a: "Nathanael (John 1:46)" },
+                        { q: "\"Are you the King of the Jews?\" Who asked Jesus this question during his trial?", a: "Pontius Pilate (Matthew 27:11)" },
+                        { q: "\"Do you understand what you are reading?\" Who asked this of the Ethiopian eunuch?", a: "Philip the Evangelist (Acts 8:30)" }
+                    ]
+                }
+            ],
+            3: [
+                {
+                    category: "Mode 9: The Epistles Reference Challenge",
+                    questions: [
+                        { q: "\"I have been crucified with Christ and I no longer live, but Christ lives in me.\" Give the book and chapter.", a: "Galatians 2 (Galatians 2:20)" },
+                        { q: "\"For it is by grace you have been saved, through faith—and this is not from yourselves, it is the gift of God...\"", a: "Ephesians 2 (Ephesians 2:8)" },
+                        { q: "\"Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.\"", a: "Philippians 4 (Philippians 4:6)" },
+                        { q: "\"Set your minds on things above, not on earthly things.\" Which letter contains this exhortation?", a: "Colossians (Colossians 3:2)" },
+                        { q: "\"For the love of money is a root of all kinds of evil.\" In which pastoral letter is this written?", a: "1 Timothy (1 Timothy 6:10)" },
+                        { q: "\"Every good and perfect gift is from above, coming down from the Father of the heavenly lights...\"", a: "James (James 1:17)" }
+                    ]
+                },
+                {
+                    category: "Mode 10: Apocalyptic Declarations",
+                    questions: [
+                        { q: "\"Holy, holy, holy is the Lord God Almighty, who was, and is, and is to come.\" Where is this phrase uttered in Revelation?", a: "Revelation 4:8" },
+                        { q: "\"Worthy is the Lamb, who was slain, to receive power and wealth and wisdom and strength and honor and glory and praise!\"", a: "Revelation 5:12" },
+                        { q: "\"Salvation belongs to our God, who sits on the throne, and to the Lamb.\" Which chapter features this great multitude shouting?", a: "Revelation 7 (Revelation 7:10)" },
+                        { q: "\"The kingdom of the world has become the kingdom of our Lord and of his Messiah, and he will reign for ever and ever.\"", a: "Revelation 11:15" },
+                        { q: "\"They triumphed over him by the blood of the Lamb and by the word of their testimony...\"", a: "Revelation 12:11" },
+                        { q: "\"Hallelujah! For our Lord God Almighty reigns. Let us rejoice and be glad and give him glory!\"", a: "Revelation 19:6-7" }
+                    ]
+                },
+                {
+                    category: "Mode 11: Covenant & Promise Quotes",
+                    questions: [
+                        { q: "\"I have set my rainbow in the clouds, and it will be the sign of the covenant between me and the earth.\" Where is this found?", a: "Genesis 9:13" },
+                        { q: "\"I will make you into a great nation, and I will bless you; I will make your name great, and you will be a blessing.\" To whom was this spoken?", a: "Abram / Abraham (Genesis 12:2)" },
+                        { q: "\"The days are coming,\" declares the Lord, \"when I will make a new covenant with the people of Israel...\" Which prophet gave this promise?", a: "Jeremiah (Jeremiah 31:31)" },
+                        { q: "\"I will give you a new heart and put a new spirit in you; I will remove from you your heart of stone...\"", a: "Ezekiel (Ezekiel 36:26)" },
+                        { q: "\"And surely I am with you always, to the very end of the age.\" Where is this final promise of Jesus recorded?", a: "Matthew 28:20" },
+                        { q: "\"He has sent me to bind up the brokenhearted, to proclaim freedom for the captives...\" Jesus read this promise in Nazareth from which prophet?", a: "Isaiah (Isaiah 61:1 / Luke 4:18)" }
+                    ]
+                },
+                {
+                    category: "Mode 12: High-Difficulty Reference Spotting",
+                    questions: [
+                        { q: "Where in scripture can you find the chapter detailing the \"Dry Bones coming to life\"?", a: "Ezekiel 37" },
+                        { q: "Which chapter in the Old Testament contains the prophecy of the \"Suffering Servant\" who was pierced for our transgressions?", a: "Isaiah 53" },
+                        { q: "Where in the New Testament is the list of the Fruit of the Spirit located?", a: "Galatians 5 (Galatians 5:22-23)" },
+                        { q: "In which book and chapter is the famous passage on the \"Armor of God\" located?", a: "Ephesians 6" },
+                        { q: "Which chapter in Hebrews is known as the \"Faith Hall of Fame\"?", a: "Hebrews 11" },
+                        { q: "Where in the Bible do you find the full description of the New Jerusalem descending out of heaven?", a: "Revelation 21" }
+                    ]
+                }
+            ]
+        };
+
+        let contestants = [
+            { name: "Player 1", score: 0 },
+            { name: "Player 2", score: 0 },
+            { name: "Player 3", score: 0 }
+        ];
+        let currentRound = 1;
+        let activeTurnIndex = 0;
+        let baseTimeLimit = 20; 
+        let countdownTicker = null;
+        let secondsRemaining = 0;
+        let activeQuestionButton = null;
+        let activeQuestionValue = 100;
+        let questionsClearedThisRound = 0;
+
+        const audioContextInstance = new (window.AudioContext || window.webkitAudioContext)();
+        function playSignalTone(pitchHz, waveform, lengthSec) {
+            try {
+                const oscillator = audioContextInstance.createOscillator();
+                const soundGain = audioContextInstance.createGain();
+                oscillator.type = waveform;
+                oscillator.frequency.value = pitchHz;
+                soundGain.gain.setValueAtTime(0.12, audioContextInstance.currentTime);
+                soundGain.gain.exponentialRampToValueAtTime(0.00001, audioContextInstance.currentTime + lengthSec);
+                oscillator.connect(soundGain);
+                soundGain.connect(audioContextInstance.destination);
+                oscillator.start();
+                oscillator.stop(audioContextInstance.currentTime + lengthSec);
+            } catch (err) {
+                console.warn("Audio blocked pending viewport interaction.");
+            }
+        }
+
+        function initiateTriviaBoard() {
+            contestants[0].name = document.getElementById('p1-input').value.trim() || "Contestant 1";
+            contestants[1].name = document.getElementById('p2-input').value.trim() || "Contestant 2";
+            contestants[2].name = document.getElementById('p3-input').value.trim() || "Contestant 3";
+            baseTimeLimit = parseInt(document.getElementById('timer-input').value, 10) || 20;
+
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`label-idx-${i}`).value = contestants[i].name;
+            }
+
+            document.getElementById('setup-screen').style.display = 'none';
+            generateActiveBoard();
+            refreshTurnHighlightUI();
+            updateLeaderboardVisuals();
+        }
+
+        function updatePlayerName(index, newName) {
+            contestants[index].name = newName.trim() || `Player ${index + 1}`;
+        }
+
+        function manualScoreAdjust(index, amount) {
+            contestants[index].score += amount;
+            document.getElementById(`val-idx-${index}`).innerText = contestants[index].score;
+            updateLeaderboardVisuals();
+        }
+
+        function updateLeaderboardVisuals() {
+            const maxScore = Math.max(...contestants.map(c => c.score));
+            contestants.forEach((c, idx) => {
+                const card = document.getElementById(`card-idx-${idx}`);
+                if (c.score === maxScore && maxScore > 0) {
+                    card.classList.add('leader');
+                } else {
+                    card.classList.remove('leader');
+                }
+            });
+        }
+
+        function generateActiveBoard() {
+            const boardGrid = document.getElementById('board-matrix-grid');
+            boardGrid.innerHTML = '';
+            questionsClearedThisRound = 0;
+            document.getElementById('btn-next-round').disabled = true;
+            document.getElementById('round-title-node').innerText = `ROUND ${currentRound}`;
+            document.body.className = `round-${currentRound}`;
+
+            const activeDataset = triviaPackage[currentRound];
+
+            activeDataset.forEach((columnGroup) => {
+                const columnWrapper = document.createElement('div');
+                columnWrapper.className = 'category-column';
+
+                const headerBox = document.createElement('div');
+                headerBox.className = 'category-header';
+                headerBox.innerText = columnGroup.category;
+                columnWrapper.appendChild(headerBox);
+
+                columnGroup.questions.forEach((item, index) => {
+                    const pointVal = (index + 1) * 100 * currentRound;
+                    const tileButton = document.createElement('button');
+                    tileButton.className = 'question-btn';
+                    tileButton.innerText = pointVal;
+                    tileButton.onclick = () => openQuestionModal(tileButton, columnGroup.category, item.q, item.a, pointVal);
+                    columnWrapper.appendChild(tileButton);
+                });
+
+                boardGrid.appendChild(columnWrapper);
+            });
+        }
+
+        function refreshTurnHighlightUI() {
+            for (let i = 0; i < 3; i++) {
+                const UIElementCard = document.getElementById(`card-idx-${i}`);
+                if (i === activeTurnIndex) {
+                    UIElementCard.classList.add('active-turn');
+                } else {
+                    UIElementCard.classList.remove('active-turn');
+                }
+            }
+        }
+
+        function forceRotateTurn() {
+            activeTurnIndex = (activeTurnIndex + 1) % 3;
+            refreshTurnHighlightUI();
+        }
+
+        function openQuestionModal(buttonNode, category, promptText, correctResponse, value) {
+            activeQuestionButton = buttonNode;
+            activeQuestionValue = value;
+
+            document.getElementById('modal-category-text').innerText = `${category} (${value} PTS)`;
+            document.getElementById('modal-question-text').innerText = promptText;
+            document.getElementById('modal-answer-text').innerText = correctResponse;
+
+            document.getElementById('modal-answer-text').style.display = 'none';
+            document.getElementById('btn-reveal-trigger').style.display = 'block';
+            document.getElementById('scoring-row-block').style.display = 'none';
+            document.getElementById('timer-track-element').classList.remove('danger-alert');
+
+            document.getElementById('question-modal').style.display = 'flex';
+
+            secondsRemaining = baseTimeLimit;
+            runModalTimerCountdown();
+        }
+
+        function runModalTimerCountdown() {
+            const barFill = document.getElementById('timer-bar-fill');
+            const numericalLabel = document.getElementById('timer-countdown-text');
+            const trackContainer = document.getElementById('timer-track-element');
+
+            function decrementStep() {
+                let ratio = (secondsRemaining / baseTimeLimit) * 100;
+                barFill.style.width = `${ratio}%`;
+                numericalLabel.innerText = `${secondsRemaining}s`;
+
+                if (secondsRemaining <= 5 && secondsRemaining > 0) {
+                    trackContainer.classList.add('danger-alert');
+                    playSignalTone(480, 'sine', 0.08);
+                }
+
+                if (secondsRemaining <= 0) {
+                    clearInterval(countdownTicker);
+                    numericalLabel.innerText = "TIME UP";
+                    playSignalTone(160, 'sawtooth', 0.5);
+                }
+                secondsRemaining--;
+            }
+
+            decrementStep();
+            countdownTicker = setInterval(decrementStep, 1000);
+        }
+
+        function revealAnswerAction() {
+            clearInterval(countdownTicker);
+            playSignalTone(580, 'sine', 0.12);
+            document.getElementById('modal-answer-text').style.display = 'block';
+            document.getElementById('btn-reveal-trigger').style.display = 'none';
+            document.getElementById('scoring-row-block').style.display = 'flex';
+        }
+
+        function resolveScoringSubmission(awardedPoints) {
+            if (awardedPoints) {
+                contestants[activeTurnIndex].score += activeQuestionValue;
+                document.getElementById(`val-idx-${activeTurnIndex}`).innerText = contestants[activeTurnIndex].score;
+                playSignalTone(840, 'sine', 0.25);
+            } else {
+                playSignalTone(220, 'triangle', 0.25);
+            }
+
+            updateLeaderboardVisuals();
+            document.getElementById('question-modal').style.display = 'none';
+            if (activeQuestionButton) {
+                activeQuestionButton.disabled = true;
+            }
+
+            questionsClearedThisRound++;
+            if (questionsClearedThisRound >= 24) {
+                document.getElementById('btn-next-round').disabled = false;
+            }
+
+            forceRotateTurn();
+        }
+
+        function advanceToNextRound() {
+            if (currentRound < 3) {
+                currentRound++;
+                generateActiveBoard();
+                playSignalTone(620, 'sine', 0.3);
+            } else {
+                alert(`Game Complete! Final Scores:\n\n` + 
+                    contestants.map(c => `${c.name}: ${c.score} points`).join('\n')
+                );
+            }
+        }
+    </script>
+</body>
+</html>
